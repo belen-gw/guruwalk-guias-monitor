@@ -1,0 +1,89 @@
+name: Monitorizacion Regulacion Guias Turisticos
+
+on:
+  schedule:
+    # Cada lunes a las 07:00 UTC (08:00 España invierno / 09:00 verano)
+    - cron: "0 7 * * 1"
+  # Permite lanzarlo manualmente desde la pestaña Actions
+  workflow_dispatch:
+
+jobs:
+
+  # ────────────────────────────────────────────────
+  # JOB 1: Detectar cambios y mostrar resumen
+  # Se ejecuta siempre. No envía ningún email.
+  # ────────────────────────────────────────────────
+  detectar:
+    name: "1. Detectar cambios"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar código del repositorio
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Detectar cambios en fuentes oficiales
+        run: python monitor.py --detect-only
+
+      - name: Guardar snapshots y cambios pendientes en el repositorio
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add snapshots.json pending_changes.json
+          git diff --staged --quiet || git commit -m "chore: snapshots $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: Subir pending_changes.json como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: pending-changes
+          path: pending_changes.json
+          retention-days: 1
+
+  # ────────────────────────────────────────────────
+  # JOB 2: Enviar email (requiere tu aprobación)
+  # GitHub te manda un email con el resumen del Job 1.
+  # Tú haces clic → ves los logs → apruebas o rechazas.
+  # ────────────────────────────────────────────────
+  enviar-email:
+    name: "2. Enviar email (requiere aprobacion)"
+    needs: detectar
+    runs-on: ubuntu-latest
+
+    # 👇 ESTA LÍNEA es la clave: pausa el workflow y te pide confirmación
+    environment: aprobacion-email
+
+    steps:
+      - name: Descargar código del repositorio
+        uses: actions/checkout@v4
+        with:
+          ref: main  # coger la versión actualizada con los snapshots
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Descargar cambios pendientes
+        uses: actions/download-artifact@v4
+        with:
+          name: pending-changes
+
+      - name: Enviar email (aprobado por Belén)
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_DEST: ${{ secrets.EMAIL_DEST }}
+        run: python monitor.py --send-pending
