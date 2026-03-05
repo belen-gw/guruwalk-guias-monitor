@@ -31,11 +31,15 @@ jobs:
       - name: Detectar cambios en fuentes oficiales
         run: python monitor.py --detect-only
 
+      - name: Debug - listar archivos generados
+        run: ls -la
+
       - name: Guardar snapshots y cambios pendientes en el repositorio
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add snapshots.json pending_changes.json
+          git add snapshots.json
+          [ -f pending_changes.json ] && git add pending_changes.json || echo "pending_changes.json no encontrado"
           git diff --staged --quiet || git commit -m "chore: snapshots $(date -u +%Y-%m-%d)"
           git push
 
