@@ -2,23 +2,14 @@ name: Monitorizacion Regulacion Guias Turisticos
 
 on:
   schedule:
-    # Cada lunes a las 07:00 UTC (08:00 España invierno / 09:00 verano)
     - cron: "0 7 * * 1"
-  # Permite lanzarlo manualmente desde la pestaña Actions
   workflow_dispatch:
 
 jobs:
 
-  # ────────────────────────────────────────────────
-  # JOB 1: Detectar cambios y mostrar resumen
-  # Se ejecuta siempre. No envía ningún email.
-  # ────────────────────────────────────────────────
   detectar:
     name: "1. Detectar cambios"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: regulacion-guias-monitor
 
     steps:
       - name: Descargar código del repositorio
@@ -49,30 +40,20 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pending-changes
-          path: regulacion-guias-monitor/pending_changes.json
+          path: pending_changes.json
           retention-days: 1
 
-  # ────────────────────────────────────────────────
-  # JOB 2: Enviar email (requiere tu aprobación)
-  # GitHub te manda un email con el resumen del Job 1.
-  # Tú haces clic → ves los logs → apruebas o rechazas.
-  # ────────────────────────────────────────────────
   enviar-email:
     name: "2. Enviar email (requiere aprobacion)"
     needs: detectar
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: regulacion-guias-monitor
-
-    # 👇 ESTA LÍNEA es la clave: pausa el workflow y te pide confirmación
     environment: aprobacion-email
 
     steps:
       - name: Descargar código del repositorio
         uses: actions/checkout@v4
         with:
-          ref: main  # coger la versión actualizada con los snapshots
+          ref: main
 
       - name: Configurar Python 3.12
         uses: actions/setup-python@v5
@@ -86,7 +67,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: pending-changes
-          path: regulacion-guias-monitor
+          path: .
 
       - name: Enviar email (aprobado por Belén)
         env:
@@ -94,3 +75,4 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           EMAIL_DEST: ${{ secrets.EMAIL_DEST }}
         run: python monitor.py --send-pending
+
