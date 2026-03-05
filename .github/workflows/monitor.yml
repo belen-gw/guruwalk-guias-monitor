@@ -32,7 +32,13 @@ jobs:
         run: python monitor.py --detect-only
 
       - name: Debug - listar archivos generados
-        run: ls -la
+        run: |
+          echo "=== Directorio actual ==="
+          pwd
+          echo "=== Archivos en directorio actual ==="
+          ls -la
+          echo "=== Archivos en raíz del repo ==="
+          ls -la $GITHUB_WORKSPACE
 
       - name: Guardar snapshots y cambios pendientes en el repositorio
         run: |
@@ -85,4 +91,3 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           EMAIL_DEST: ${{ secrets.EMAIL_DEST }}
         run: python monitor.py --send-pending
-
