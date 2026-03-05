@@ -10,6 +10,9 @@ jobs:
   detectar:
     name: "1. Detectar cambios"
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: regulacion-guias-monitor
 
     steps:
       - name: Descargar código del repositorio
@@ -40,7 +43,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pending-changes
-          path: pending_changes.json
+          path: regulacion-guias-monitor/pending_changes.json
           retention-days: 1
 
   enviar-email:
@@ -48,6 +51,9 @@ jobs:
     needs: detectar
     runs-on: ubuntu-latest
     environment: aprobacion-email
+    defaults:
+      run:
+        working-directory: regulacion-guias-monitor
 
     steps:
       - name: Descargar código del repositorio
@@ -67,7 +73,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: pending-changes
-          path: .
+          path: regulacion-guias-monitor
 
       - name: Enviar email (aprobado por Belén)
         env:
