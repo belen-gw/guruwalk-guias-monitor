@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """
 Agente de monitorización de regulación de guías de turismo en España.
-Detecta cambios en fuentes oficiales y envía alertas por email.
 
-Ejecutar: python monitor.py
+Modos de uso:
+  python monitor.py --detect-only   → detecta cambios, guarda pending_changes.json, NO envía email
+  python monitor.py --send-pending  → lee pending_changes.json y envía el email de alerta
+  python monitor.py                 → modo completo sin confirmación (ejecución local)
 """
 
+import argparse
 import hashlib
 import json
 import os
 import smtplib
+import sys
 import time
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
@@ -19,12 +23,13 @@ import requests
 from bs4 import BeautifulSoup
 
 # ──────────────────────────────────────────
-# Configuración (variables de entorno o GitHub Secrets)
+# Configuración
 # ──────────────────────────────────────────
-GMAIL_USER = os.environ.get("GMAIL_USER", "belen@guruwalk.com")
+GMAIL_USER         = os.environ.get("GMAIL_USER", "belen@guruwalk.com")
 GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
-EMAIL_DEST = os.environ.get("EMAIL_DEST", "belen@guruwalk.com")
-SNAPSHOTS_FILE = "snapshots.json"
+EMAIL_DEST         = os.environ.get("EMAIL_DEST", "belen@guruwalk.com")
+SNAPSHOTS_FILE     = "snapshots.json"
+PENDING_FILE       = "pending_changes.json"
 
 # ──────────────────────────────────────────
 # Fuentes a monitorizar
@@ -51,7 +56,7 @@ SOURCES = [
     },
     # ── Comunidades Autónomas ──
     {
-        "name": "Andalucía – Guías turísticos (procedimiento)",
+        "name": "Andalucía – Guías turísticos",
         "region": "Andalucía",
         "url": "https://www.juntadeandalucia.es/organismos/turismoculturaydepor/servicios/procedimientos/detalle/13398.html",
         "css_selector": "div#procedimiento",
@@ -140,7 +145,7 @@ SOURCES = [
         "url": "https://sede.asturias.es/tramite/guia-de-turismo",
         "css_selector": "div.tramite-body",
     },
-    # ── Artículo propio GuruWalk (referencia) ──
+    # ── Artículo propio GuruWalk ──
     {
         "name": "GuruWalk Support – Obtener carnet de guía",
         "region": "GuruWalk",
@@ -151,11 +156,10 @@ SOURCES = [
 
 
 # ──────────────────────────────────────────
-# Funciones principales
+# Utilidades
 # ──────────────────────────────────────────
 
 def fetch_content(source: dict) -> str | None:
-    """Descarga el contenido de una URL y extrae el texto relevante."""
     headers = {
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
                       "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -164,17 +168,12 @@ def fetch_content(source: dict) -> str | None:
         resp = requests.get(source["url"], headers=headers, timeout=30)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
-
-        # Intentar con el selector CSS específico
         if source.get("css_selector"):
             element = soup.select_one(source["css_selector"])
             if element:
                 return element.get_text(separator=" ", strip=True)
-
-        # Fallback: usar todo el <body>
         body = soup.find("body")
         return body.get_text(separator=" ", strip=True) if body else ""
-
     except requests.RequestException as e:
         print(f"  !! Error al acceder a {source['name']}: {e}")
         return None
@@ -184,19 +183,23 @@ def compute_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def load_snapshots() -> dict:
-    if os.path.exists(SNAPSHOTS_FILE):
-        with open(SNAPSHOTS_FILE, "r", encoding="utf-8") as f:
+def load_json(path: str) -> dict | list:
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
 
-def save_snapshots(snapshots: dict):
-    with open(SNAPSHOTS_FILE, "w", encoding="utf-8") as f:
-        json.dump(snapshots, f, ensure_ascii=False, indent=2)
+def save_json(path: str, data):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def build_email_html(changes: list) -> str:
+# ──────────────────────────────────────────
+# Email
+# ──────────────────────────────────────────
+
+def build_alert_html(changes: list) -> str:
     date_str = datetime.today().strftime("%d/%m/%Y")
     rows = ""
     for ch in changes:
@@ -205,166 +208,212 @@ def build_email_html(changes: list) -> str:
           <td style="padding:10px; border-bottom:1px solid #eee; font-weight:bold; color:#c0392b;">
             {ch['region']}
           </td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">
-            {ch['name']}
-          </td>
+          <td style="padding:10px; border-bottom:1px solid #eee;">{ch['name']}</td>
           <td style="padding:10px; border-bottom:1px solid #eee;">
             <a href="{ch['url']}" style="color:#2980b9;">Ver fuente</a>
           </td>
-        </tr>
-        """
+        </tr>"""
 
     return f"""
-    <html><body style="font-family:Arial,sans-serif; color:#333; max-width:700px; margin:auto;">
-      <div style="background:#c0392b; color:white; padding:20px; border-radius:6px 6px 0 0;">
+    <html><body style="font-family:Arial,sans-serif;color:#333;max-width:700px;margin:auto;">
+      <div style="background:#c0392b;color:white;padding:20px;border-radius:6px 6px 0 0;">
         <h2 style="margin:0;">Alerta: Cambios en regulación de guías turísticos</h2>
-        <p style="margin:4px 0 0 0; opacity:0.85;">{date_str}</p>
+        <p style="margin:4px 0 0 0;opacity:.85;">{date_str} · Confirmado por Belén</p>
       </div>
-      <div style="background:#fff5f5; padding:16px; border:1px solid #f5c6c6; border-top:none;">
-        <p>Se han detectado <strong>{len(changes)} cambio(s)</strong> en las fuentes oficiales
-        monitorizadas. Revisa cada enlace para ver si hay actualizaciones relevantes y,
-        si procede, actualiza el artículo de soporte.</p>
+      <div style="background:#fff5f5;padding:16px;border:1px solid #f5c6c6;border-top:none;">
+        <p>Se han detectado <strong>{len(changes)} cambio(s)</strong> en las fuentes
+        oficiales. Revisa cada enlace y actualiza el artículo de soporte si procede.</p>
       </div>
-      <table style="width:100%; border-collapse:collapse; margin-top:0;
-                    border:1px solid #eee; border-top:none;">
+      <table style="width:100%;border-collapse:collapse;border:1px solid #eee;border-top:none;">
         <thead style="background:#f8f8f8;">
           <tr>
-            <th style="padding:10px; text-align:left;">Region</th>
-            <th style="padding:10px; text-align:left;">Fuente</th>
-            <th style="padding:10px; text-align:left;">Enlace</th>
+            <th style="padding:10px;text-align:left;">Región</th>
+            <th style="padding:10px;text-align:left;">Fuente</th>
+            <th style="padding:10px;text-align:left;">Enlace</th>
           </tr>
         </thead>
         <tbody>{rows}</tbody>
       </table>
-      <div style="margin-top:16px; padding:12px; background:#f0f7ff;
-                  border-left:4px solid #2980b9; border-radius:4px;">
+      <div style="margin-top:16px;padding:12px;background:#f0f7ff;
+                  border-left:4px solid #2980b9;border-radius:4px;">
         <strong>Artículo de soporte a revisar:</strong><br>
         <a href="https://support.guruwalk.com/portal/es/kb/soporte-para-gurus/tr%C3%A1mites/obtener-el-carnet-de-gu%C3%ADa">
           support.guruwalk.com – Obtener el carnet de guía
         </a>
       </div>
-      <p style="color:#aaa; font-size:11px; margin-top:20px;">
+      <p style="color:#aaa;font-size:11px;margin-top:20px;">
         Generado automáticamente por el agente de monitorización de GuruWalk.
-        Ejecución semanal cada lunes.
       </p>
-    </body></html>
-    """
+    </body></html>"""
 
 
-def send_alert_email(changes: list):
-    subject = f"[GuruWalk] Cambios regulacion guias turisticos – {datetime.today().strftime('%d/%m/%Y')}"
-    html_body = build_email_html(changes)
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = GMAIL_USER
-    msg["To"] = EMAIL_DEST
-    msg.attach(MIMEText(html_body, "html"))
-
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
-        server.sendmail(GMAIL_USER, EMAIL_DEST, msg.as_string())
-
-    print(f"  -> Email enviado a {EMAIL_DEST} con {len(changes)} cambio(s).")
-
-
-def send_ok_email():
-    """Email semanal de confirmación cuando no hay cambios."""
-    subject = f"[GuruWalk] Sin cambios en regulacion guias – {datetime.today().strftime('%d/%m/%Y')}"
-    html_body = f"""
-    <html><body style="font-family:Arial,sans-serif; color:#333; max-width:600px; margin:auto;">
-      <div style="background:#27ae60; color:white; padding:20px; border-radius:6px;">
-        <h2 style="margin:0;">Todo OK – Sin cambios detectados</h2>
-        <p style="margin:4px 0 0 0; opacity:0.85;">{datetime.today().strftime('%d/%m/%Y')}</p>
+def build_ok_html() -> str:
+    return f"""
+    <html><body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:auto;">
+      <div style="background:#27ae60;color:white;padding:20px;border-radius:6px;">
+        <h2 style="margin:0;">Todo OK – Sin cambios detectados esta semana</h2>
+        <p style="margin:4px 0 0 0;opacity:.85;">{datetime.today().strftime('%d/%m/%Y')}</p>
       </div>
-      <p style="margin-top:16px;">
-        La revisión semanal de las <strong>{len(SOURCES)} fuentes oficiales</strong>
-        monitorizadas no ha detectado ningún cambio en la regulación de guías de turismo en España.
-      </p>
-      <p style="color:#aaa; font-size:11px;">
+      <p style="margin-top:16px;">La revisión de las <strong>{len(SOURCES)} fuentes</strong>
+      no ha detectado ningún cambio en la regulación de guías de turismo en España.</p>
+      <p style="color:#aaa;font-size:11px;">
         Generado automáticamente por el agente de monitorización de GuruWalk.
       </p>
-    </body></html>
-    """
+    </body></html>"""
+
+
+def send_email(subject: str, html_body: str):
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = GMAIL_USER
-    msg["To"] = EMAIL_DEST
+    msg["From"]    = GMAIL_USER
+    msg["To"]      = EMAIL_DEST
     msg.attach(MIMEText(html_body, "html"))
-
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
         server.sendmail(GMAIL_USER, EMAIL_DEST, msg.as_string())
-
-    print(f"  -> Email de confirmacion 'todo OK' enviado a {EMAIL_DEST}.")
+    print(f"  -> Email enviado a {EMAIL_DEST}")
 
 
 # ──────────────────────────────────────────
-# Main
+# Modos de ejecución
 # ──────────────────────────────────────────
 
-def main():
+def run_detect_only():
     print(f"\n{'='*60}")
-    print(f"  Monitorizacion regulacion guias turisticos – Espana")
+    print(f"  MODO: Solo detección (sin envío)")
     print(f"  Fecha: {datetime.today().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*60}\n")
 
-    if not GMAIL_APP_PASSWORD:
-        print("AVISO: GMAIL_APP_PASSWORD no está configurada. No se podrán enviar emails.")
-
-    snapshots = load_snapshots()
-    changes = []
+    snapshots     = load_json(SNAPSHOTS_FILE)
+    changes       = []
     new_snapshots = {}
-    is_first_run = len(snapshots) == 0
+    is_first_run  = len(snapshots) == 0
 
     for source in SOURCES:
         print(f"Revisando: [{source['region']}] {source['name']}")
         content = fetch_content(source)
 
         if content is None:
-            print("  -> No se pudo obtener contenido. Saltando.\n")
+            print("  -> Sin contenido. Saltando.\n")
             if source["url"] in snapshots:
                 new_snapshots[source["url"]] = snapshots[source["url"]]
             continue
 
-        current_hash = compute_hash(content)
-        previous = snapshots.get(source["url"], {})
-        previous_hash = previous.get("hash")
+        current_hash  = compute_hash(content)
+        previous_hash = snapshots.get(source["url"], {}).get("hash")
 
         if previous_hash is None:
             print("  -> Primera vez registrada.\n")
         elif current_hash != previous_hash:
-            print(f"  -> CAMBIO DETECTADO\n")
+            print(f"  -> *** CAMBIO DETECTADO ***\n")
             changes.append(source)
         else:
             print("  -> Sin cambios.\n")
 
         new_snapshots[source["url"]] = {
-            "hash": current_hash,
-            "name": source["name"],
-            "region": source["region"],
+            "hash":         current_hash,
+            "name":         source["name"],
+            "region":       source["region"],
             "last_checked": datetime.today().isoformat(),
         }
+        time.sleep(1)
 
-        time.sleep(1)  # respetar los servidores
+    save_json(SNAPSHOTS_FILE, new_snapshots)
 
-    save_snapshots(new_snapshots)
-    print(f"Snapshots guardados en '{SNAPSHOTS_FILE}'.\n")
+    print("\n" + "="*60)
+    print("  RESUMEN DE LA DETECCIÓN")
+    print("="*60)
+    if is_first_run:
+        print("  Primera ejecución: snapshots iniciales guardados.")
+        print("  No hay cambios que revisar todavía.")
+    elif changes:
+        print(f"\n  Se han detectado CAMBIOS en {len(changes)} fuente(s):\n")
+        for ch in changes:
+            print(f"  [{ch['region']}] {ch['name']}")
+            print(f"   -> {ch['url']}\n")
+        print("  Si apruebas este workflow, se enviará el email de alerta.")
+    else:
+        print("  Sin cambios detectados en ninguna fuente.")
+        print("  Si apruebas este workflow, se enviará el email semanal de 'Todo OK'.")
+    print("="*60 + "\n")
+
+    save_json(PENDING_FILE, {
+        "date":         datetime.today().isoformat(),
+        "is_first_run": is_first_run,
+        "changes":      changes,
+    })
+    print(f"  -> pending_changes.json guardado correctamente.")
+
+    if changes:
+        print("::notice title=Cambios detectados::"
+              f"{len(changes)} fuente(s) han cambiado.")
+    elif is_first_run:
+        print("::notice title=Primera ejecucion::Snapshots iniciales guardados.")
+    else:
+        print("::notice title=Sin cambios::Todas las fuentes están igual que la semana pasada.")
+
+
+def run_send_pending():
+    print(f"\n{'='*60}")
+    print(f"  MODO: Envío de email (aprobado por Belén)")
+    print(f"  Fecha: {datetime.today().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{'='*60}\n")
 
     if not GMAIL_APP_PASSWORD:
-        print("Email omitido (sin credenciales configuradas).")
+        print("ERROR: GMAIL_APP_PASSWORD no configurada. Saliendo.")
+        sys.exit(1)
+
+    pending = load_json(PENDING_FILE)
+    if not pending:
+        print("No se encontró pending_changes.json. Nada que enviar.")
         return
 
-    if is_first_run:
-        print("Primera ejecucion completada. Snapshots iniciales guardados.")
-        print("A partir de la proxima ejecucion se detectaran cambios.")
-    elif changes:
-        print(f"ALERTA: {len(changes)} cambio(s) detectado(s). Enviando email...")
-        send_alert_email(changes)
-    else:
-        print("Sin cambios detectados. Enviando confirmacion semanal...")
-        send_ok_email()
+    changes      = pending.get("changes", [])
+    is_first_run = pending.get("is_first_run", False)
 
+    if is_first_run:
+        print("Primera ejecución: no se envía email.")
+        return
+
+    date_str = datetime.today().strftime("%d/%m/%Y")
+
+    if changes:
+        subject = f"[GuruWalk] Cambios regulacion guias turisticos - {date_str}"
+        html    = build_alert_html(changes)
+        print(f"Enviando email de alerta con {len(changes)} cambio(s)...")
+    else:
+        subject = f"[GuruWalk] Sin cambios en regulacion guias - {date_str}"
+        html    = build_ok_html()
+        print("Enviando email de confirmación semanal 'Todo OK'...")
+
+    send_email(subject, html)
+
+
+def run_full():
+    print(f"\n{'='*60}")
+    print(f"  MODO: Completo (sin confirmación)")
+    print(f"  Fecha: {datetime.today().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{'='*60}\n")
+
+    run_detect_only()
+    run_send_pending()
+
+
+# ──────────────────────────────────────────
+# Entry point
+# ──────────────────────────────────────────
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Monitor regulación guías turísticos")
+    parser.add_argument("--detect-only",  action="store_true",
+                        help="Solo detectar cambios, no enviar email")
+    parser.add_argument("--send-pending", action="store_true",
+                        help="Enviar email con los cambios ya detectados")
+    args = parser.parse_args()
+
+    if args.detect_only:
+        run_detect_only()
+    elif args.send_pending:
+        run_send_pending()
+    else:
+        run_full()
