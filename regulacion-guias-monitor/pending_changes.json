@@ -1,12 +1,5 @@
 {
-  "date": "2026-03-06T10:55:44.130168",
+  "date": "2026-03-06T11:10:05.908449",
   "is_first_run": false,
-  "changes": [
-    {
-      "name": "Asturias – Guías de turismo",
-      "region": "Asturias",
-      "url": "https://sede.asturias.es/tramite/guia-de-turismo",
-      "css_selector": "div.tramite-body"
-    }
-  ]
+  "changes": []
 }
