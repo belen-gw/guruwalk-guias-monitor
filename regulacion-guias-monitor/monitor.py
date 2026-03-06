@@ -82,14 +82,14 @@ SOURCES = [
     {
         "name": "Canarias – Guías turísticos",
         "region": "Canarias",
-        "url": "https://sede.gobcan.es/sede/tramites/3084",
-        "css_selector": "main",
+        "url": "https://www.gobiernodecanarias.org/turismo/dir_gral_ordenacion_promocion/guias_de_turismo/index.html",
+        "css_selector": "div#content",
     },
     {
-        "name": "Galicia – Habilitación guía de turismo (TU951A)",
+        "name": "Galicia – Normativa guías de turismo",
         "region": "Galicia",
-        "url": "https://sede.xunta.gal/es/detalle-procedemento?codtram=TU951A",
-        "css_selector": "div#content",
+        "url": "https://www.turismo.gal/canle-institucional/normativa/decretos?langId=es_ES",
+        "css_selector": "main",
     },
     {
         "name": "Illes Balears – Guies de turisme",
@@ -128,9 +128,9 @@ SOURCES = [
         "css_selector": "div#content",
     },
     {
-        "name": "Navarra – Normativa turismo profesional",
+        "name": "Navarra – Legislación guías de turismo",
         "region": "Navarra",
-        "url": "https://turismoprofesional.navarra.es/es/servicios-sector/normativa",
+        "url": "https://www.lexnavarra.navarra.es/buscador.asp?textolibre=guia+turismo&idrango=0",
         "css_selector": "main",
     },
     {
