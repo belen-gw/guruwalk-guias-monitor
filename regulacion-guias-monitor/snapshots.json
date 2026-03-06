@@ -3,42 +3,96 @@
     "hash": "27e4053529821791f193af02866ae04263c55dca5875cdbe334b88a17ad3eeed",
     "name": "BOE – Legislación 'guía turístico'",
     "region": "Nacional",
-    "last_checked": "2026-03-06T11:09:17.397393"
+    "last_checked": "2026-03-06T11:25:38.292029"
   },
   "https://www.boe.es/buscar/legislacion.php?campo%5B0%5D=TIT&dato%5B0%5D=gu%C3%ADa+de+turismo&operador%5B0%5D=Y&lang=es&orden=pub&accion=Buscar": {
     "hash": "27e4053529821791f193af02866ae04263c55dca5875cdbe334b88a17ad3eeed",
     "name": "BOE – Legislación 'guía de turismo'",
     "region": "Nacional",
-    "last_checked": "2026-03-06T11:09:19.224440"
+    "last_checked": "2026-03-06T11:25:39.663331"
+  },
+  "https://turismo.gob.es/": {
+    "hash": "2dbdfe0ed73e11f0997d67063b4a365d735fb49e34b209b318c6907663881840",
+    "name": "Ministerio de Turismo – Portal oficial",
+    "region": "Nacional",
+    "last_checked": "2026-03-06T11:25:43.891254"
   },
   "https://www.juntadeandalucia.es/organismos/turismoculturaydepor/servicios/procedimientos/detalle/13398.html": {
     "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "name": "Andalucía – Guías turísticos",
     "region": "Andalucía",
-    "last_checked": "2026-03-06T11:09:21.232877"
+    "last_checked": "2026-03-06T11:25:45.796220"
+  },
+  "https://sede.comunidad.madrid/autorizaciones-licencias-permisos-carnes/pruebas-guia-oficial-turismo": {
+    "hash": "9311cfaf3b3916e36523477f8373f06ac135769ffa540b296cd4437a694e8a45",
+    "name": "Comunidad de Madrid – Guías turísticos",
+    "region": "Madrid",
+    "last_checked": "2026-03-06T11:25:53.121490"
+  },
+  "https://empresa.gencat.cat/ca/treb_ambits_actuacio/turisme/professionals_turisme/emo_empreses_establiments_turistics/emo_guies_turisme/": {
+    "hash": "add09db2441a050964a5ed1f87eff728ba75a266e73654a78b39e80a5ebada4b",
+    "name": "Cataluña – Guies de turisme",
+    "region": "Cataluña",
+    "last_checked": "2026-03-06T11:25:56.077425"
   },
   "https://www.gva.es/es/inicio/procedimientos?id_proc=20261": {
     "hash": "c3041838d5fa07c4cdd01afa4847a8bbf0dda1ed5ebab5a74c32381cc076f517",
     "name": "Comunitat Valenciana – Guías de turismo",
     "region": "Valencia",
-    "last_checked": "2026-03-06T11:09:42.413845"
+    "last_checked": "2026-03-06T11:26:02.228772"
+  },
+  "https://www.caib.es/sites/portalturisme/ca/guies_turastics/": {
+    "hash": "39c848e7eca28e49f317b797497cda0c5990c295d96f0d902af9e995bfed4a01",
+    "name": "Illes Balears – Guies de turisme",
+    "region": "Baleares",
+    "last_checked": "2026-03-06T11:26:34.211832"
   },
   "https://www.euskadi.eus/informacion/guias-de-turismo/web01-a2turism/es/": {
     "hash": "1ae8cecd4be60dfbed8e64bb3cd099e20d1e678a816e8ab1219fb8c80e495c0e",
     "name": "País Vasco – Guías de turismo",
     "region": "País Vasco",
-    "last_checked": "2026-03-06T11:09:47.488181"
+    "last_checked": "2026-03-06T11:26:35.917289"
+  },
+  "https://www.aragon.es/tramites/cultura-turismo-deportes-ocio/turismo-hosteleria/guias-turismo": {
+    "hash": "9d4e96d122a2cbda0761ed4c1c7da1e4fea5c11804d2e68a33d5cfa06965034d",
+    "name": "Aragón – Guías de turismo",
+    "region": "Aragón",
+    "last_checked": "2026-03-06T11:26:38.328441"
+  },
+  "https://www.tramitacastillayleon.jcyl.es/web/jcyl/AdministracionElectronica/es/Plantilla100Detalle/1251181050732/Tramite/1284546227141/Tramite": {
+    "hash": "c30da202cfb679b3fc1f042857dfeffe199afd15683ac5f9660ddfed5e129fca",
+    "name": "Castilla y León – Guías de turismo",
+    "region": "Castilla y León",
+    "last_checked": "2026-03-06T11:26:42.042468"
+  },
+  "https://www.jccm.es/sede/tramite/M7N": {
+    "hash": "51d6c6fa9d2423bdad9c41fc03d6500c2efa1e2c293527b11d2f1c0ae7d293e1",
+    "name": "Castilla-La Mancha – Habilitación guía de turismo",
+    "region": "Castilla-La Mancha",
+    "last_checked": "2026-03-06T11:26:44.555576"
+  },
+  "https://sede.carm.es/web/pagina?IDCONTENIDO=853&IDTIPO=240&RASTRO=c$m40288": {
+    "hash": "25374808c4341115ecc19975eecf0a2a3109f78f22378efe72f2c1075a44b3fa",
+    "name": "Región de Murcia – Guías turísticos",
+    "region": "Murcia",
+    "last_checked": "2026-03-06T11:26:47.077343"
+  },
+  "https://www.juntaex.es/w/2936": {
+    "hash": "40566358c25686615eabb377165554a963f973c37c16c272d95dc795ce8f3ce4",
+    "name": "Extremadura – Guías de turismo",
+    "region": "Extremadura",
+    "last_checked": "2026-03-06T11:26:49.501400"
   },
   "https://sede.asturias.es/tramite/guia-de-turismo": {
     "hash": "3453a577e647db0e8875e18a24d60dc582aed6f2962622e7143008303cb09735",
     "name": "Asturias – Guías de turismo",
     "region": "Asturias",
-    "last_checked": "2026-03-06T11:10:00.093896"
+    "last_checked": "2026-03-06T11:26:53.131013"
   },
   "https://support.guruwalk.com/portal/es/kb/soporte-para-gurus/trámites/obtener-el-carnet-de-guía": {
     "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "name": "GuruWalk Support – Obtener carnet de guía",
     "region": "GuruWalk",
-    "last_checked": "2026-03-06T11:10:04.907566"
+    "last_checked": "2026-03-06T11:26:56.807626"
   }
 }
