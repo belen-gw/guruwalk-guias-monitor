@@ -122,10 +122,10 @@ SOURCES = [
         "css_selector": "main",
     },
     {
-        "name": "Región de Murcia – Guías turísticos",
+         "name": "Región de Murcia – Guías turísticos",
         "region": "Murcia",
         "url": "https://sede.carm.es/web/pagina?IDCONTENIDO=853&IDTIPO=240&RASTRO=c$m40288",
-        "css_selector": "div#content",
+        "css_selector": ".fichaSeccion:not(#seccion-solicitudes)",
     },
     {
         "name": "Navarra – Legislación guías de turismo",
@@ -137,7 +137,7 @@ SOURCES = [
         "name": "Extremadura – Guías de turismo",
         "region": "Extremadura",
         "url": "https://www.juntaex.es/w/2936",
-        "css_selector": "main",
+        "css_selector": ".detalle-body",
     },
     {
         "name": "Asturias – Guías de turismo",
