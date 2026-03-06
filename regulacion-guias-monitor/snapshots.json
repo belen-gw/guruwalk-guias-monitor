@@ -77,7 +77,7 @@
     "region": "Castilla-La Mancha",
     "last_checked": "2026-03-06T12:07:58.405870"
   },
-  "https://sede.carm.es/web/pagina?IDCONTENIDO=853&IDTIPO=240&RASTRO=c$m40288": {
+  {
     "hash": "d3700b107c92edbf1bb4b92c5b638d3417e89b807f769b33cd0c28cc764e4c1d",
     "name": "Región de Murcia – Guías turísticos",
     "region": "Murcia",
@@ -89,7 +89,7 @@
     "region": "Navarra",
     "last_checked": "2026-03-06T12:08:03.347151"
   },
-  "https://www.juntaex.es/w/2936": {
+{
     "hash": "9c9a1e9a0617c47ea01607492ad30d06271476b22a633452013114e13683bfc7",
     "name": "Extremadura – Guías de turismo",
     "region": "Extremadura",
