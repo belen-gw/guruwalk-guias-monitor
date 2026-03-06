@@ -1,5 +1,18 @@
 {
-  "date": "2026-03-06T11:26:57.808277",
+  "date": "2026-03-06T12:08:38.439926",
   "is_first_run": false,
-  "changes": []
+  "changes": [
+    {
+      "name": "Región de Murcia – Guías turísticos",
+      "region": "Murcia",
+      "url": "https://sede.carm.es/web/pagina?IDCONTENIDO=853&IDTIPO=240&RASTRO=c$m40288",
+      "css_selector": "div#content"
+    },
+    {
+      "name": "Extremadura – Guías de turismo",
+      "region": "Extremadura",
+      "url": "https://www.juntaex.es/w/2936",
+      "css_selector": "main"
+    }
+  ]
 }
