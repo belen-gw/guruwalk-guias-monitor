@@ -9,7 +9,9 @@ Modos de uso:
 """
 
 import argparse
+import difflib
 import hashlib
+import html as html_module
 import json
 import os
 import smtplib
@@ -30,6 +32,7 @@ GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
 EMAIL_DEST         = os.environ.get("EMAIL_DEST", "belen@guruwalk.com")
 SNAPSHOTS_FILE     = "snapshots.json"
 PENDING_FILE       = "pending_changes.json"
+MAX_CONTENT_LEN    = 5000  # caracteres máximos a guardar por fuente
 
 # ──────────────────────────────────────────
 # Fuentes a monitorizar
@@ -122,7 +125,7 @@ SOURCES = [
         "css_selector": "main",
     },
     {
-         "name": "Región de Murcia – Guías turísticos",
+        "name": "Región de Murcia – Guías turísticos",
         "region": "Murcia",
         "url": "https://sede.carm.es/web/pagina?IDCONTENIDO=853&IDTIPO=240&RASTRO=c$m40288",
         "css_selector": ".fichaSeccion:not(#seccion-solicitudes)",
@@ -183,6 +186,46 @@ def compute_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def compute_diff_html(old_text: str, new_text: str) -> str:
+    """Genera un diff HTML entre dos textos mostrando líneas añadidas y eliminadas."""
+    if not old_text:
+        return "<em style='color:#888;font-size:12px;'>Sin contenido previo para comparar.</em>"
+
+    old_lines = [l.strip() for l in old_text.splitlines() if l.strip()]
+    new_lines = [l.strip() for l in new_text.splitlines() if l.strip()]
+
+    diff = list(difflib.ndiff(old_lines, new_lines))
+
+    result = []
+    count = 0
+    for line in diff:
+        if line.startswith("- "):
+            result.append(
+                f'<div style="background:#ffeaea;padding:5px 8px;margin:2px 0;'
+                f'border-left:3px solid #c0392b;font-family:monospace;font-size:12px;">'
+                f'➖ {html_module.escape(line[2:])}</div>'
+            )
+            count += 1
+        elif line.startswith("+ "):
+            result.append(
+                f'<div style="background:#eaffea;padding:5px 8px;margin:2px 0;'
+                f'border-left:3px solid #27ae60;font-family:monospace;font-size:12px;">'
+                f'➕ {html_module.escape(line[2:])}</div>'
+            )
+            count += 1
+        if count >= 20:
+            result.append(
+                '<div style="color:#888;font-size:11px;margin-top:6px;font-style:italic;">'
+                '... (se muestran los primeros 20 cambios)</div>'
+            )
+            break
+
+    if not result:
+        return "<em style='color:#888;font-size:12px;'>Cambio detectado en metadatos (sin diferencias de texto visibles).</em>"
+
+    return "".join(result)
+
+
 def load_json(path: str) -> dict | list:
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
@@ -203,19 +246,32 @@ def build_alert_html(changes: list) -> str:
     date_str = datetime.today().strftime("%d/%m/%Y")
     rows = ""
     for ch in changes:
-        rows += f"""
+        diff_section = ""
+        if ch.get("diff_html"):
+            diff_section = f"""
         <tr>
-          <td style="padding:10px; border-bottom:1px solid #eee; font-weight:bold; color:#c0392b;">
-            {ch['region']}
-          </td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">{ch['name']}</td>
-          <td style="padding:10px; border-bottom:1px solid #eee;">
-            <a href="{ch['url']}" style="color:#2980b9;">Ver fuente</a>
+          <td colspan="3" style="padding:12px;background:#fafafa;border-bottom:2px solid #eee;">
+            <div style="font-size:12px;color:#555;font-weight:bold;margin-bottom:6px;">
+              Cambios detectados:
+            </div>
+            {ch['diff_html']}
           </td>
         </tr>"""
 
+        rows += f"""
+        <tr>
+          <td style="padding:10px;border-bottom:1px solid #eee;font-weight:bold;color:#c0392b;">
+            {ch['region']}
+          </td>
+          <td style="padding:10px;border-bottom:1px solid #eee;">{ch['name']}</td>
+          <td style="padding:10px;border-bottom:1px solid #eee;">
+            <a href="{ch['url']}" style="color:#2980b9;">Ver fuente</a>
+          </td>
+        </tr>
+        {diff_section}"""
+
     return f"""
-    <html><body style="font-family:Arial,sans-serif;color:#333;max-width:700px;margin:auto;">
+    <html><body style="font-family:Arial,sans-serif;color:#333;max-width:750px;margin:auto;">
       <div style="background:#c0392b;color:white;padding:20px;border-radius:6px 6px 0 0;">
         <h2 style="margin:0;">Alerta: Cambios en regulación de guías turísticos</h2>
         <p style="margin:4px 0 0 0;opacity:.85;">{date_str} · Confirmado por Belén</p>
@@ -301,12 +357,19 @@ def run_detect_only():
 
         current_hash  = compute_hash(content)
         previous_hash = snapshots.get(source["url"], {}).get("hash")
+        old_content   = snapshots.get(source["url"], {}).get("content", "")
 
         if previous_hash is None:
             print("  -> Primera vez registrada.\n")
         elif current_hash != previous_hash:
             print(f"  -> *** CAMBIO DETECTADO ***\n")
-            changes.append(source)
+            diff_html = compute_diff_html(old_content, content[:MAX_CONTENT_LEN])
+            changes.append({
+                "name":     source["name"],
+                "region":   source["region"],
+                "url":      source["url"],
+                "diff_html": diff_html,
+            })
         else:
             print("  -> Sin cambios.\n")
 
@@ -315,6 +378,7 @@ def run_detect_only():
             "name":         source["name"],
             "region":       source["region"],
             "last_checked": datetime.today().isoformat(),
+            "content":      content[:MAX_CONTENT_LEN],
         }
         time.sleep(1)
 
