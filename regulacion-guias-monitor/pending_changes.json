@@ -1,5 +1,18 @@
 {
-  "date": "2026-03-06T12:28:28.028207",
-  "is_first_run": true,
-  "changes": []
+  "date": "2026-03-09T09:10:05.695706",
+  "is_first_run": false,
+  "changes": [
+    {
+      "name": "Comunitat Valenciana – Guías de turismo",
+      "region": "Valencia",
+      "url": "https://www.gva.es/es/inicio/procedimientos?id_proc=20261",
+      "css_selector": "div#procedimiento"
+    },
+    {
+      "name": "Extremadura – Guías de turismo",
+      "region": "Extremadura",
+      "url": "https://www.juntaex.es/w/2936",
+      "css_selector": ".detalle-body"
+    }
+  ]
 }
