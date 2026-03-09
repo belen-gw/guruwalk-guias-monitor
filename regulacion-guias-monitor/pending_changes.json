@@ -1,5 +1,12 @@
 {
-  "date": "2026-03-09T13:33:02.364977",
-  "is_first_run": true,
-  "changes": []
+  "date": "2026-03-09T14:32:57.280891",
+  "is_first_run": false,
+  "changes": [
+    {
+      "name": "Extremadura – Guías de turismo",
+      "region": "Extremadura",
+      "url": "https://www.juntaex.es/w/2936",
+      "diff_html": "<div style=\"background:#ffeaea;padding:5px 8px;margin:2px 0;border-left:3px solid #c0392b;font-family:monospace;font-size:12px;\">➖ -1 Actual (long): 1773063176942 - Mar 9, 2026 1:32:56 PM Offset: 3600000 - 3600000 Fecha desde (long):</div><div style=\"background:#eaffea;padding:5px 8px;margin:2px 0;border-left:3px solid #27ae60;font-family:monospace;font-size:12px;\">➕ -1 Actual (long): 1773066773215 - Mar 9, 2026 2:32:53 PM Offset: 3600000 - 3600000 Fecha desde (long):</div>"
+    }
+  ]
 }
