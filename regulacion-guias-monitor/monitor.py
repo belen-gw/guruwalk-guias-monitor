@@ -32,7 +32,7 @@ GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
 EMAIL_DEST         = os.environ.get("EMAIL_DEST", "belen@guruwalk.com")
 SNAPSHOTS_FILE     = "snapshots.json"
 PENDING_FILE       = "pending_changes.json"
-MAX_CONTENT_LEN    = 5000  # caracteres máximos a guardar por fuente
+MAX_CONTENT_LEN    = 5000
 
 # ──────────────────────────────────────────
 # Fuentes a monitorizar
@@ -140,7 +140,7 @@ SOURCES = [
         "name": "Extremadura – Guías de turismo",
         "region": "Extremadura",
         "url": "https://www.juntaex.es/w/2936",
-        "css_selector": ".detalle-body",
+        "css_selector": "#tramite_finalidad, #tramite_requisitos, #tramite_documentacion, #tramite_normativa, #tramite_resolucion, #tramite_gestor",
     },
     {
         "name": "Asturias – Guías de turismo",
@@ -172,9 +172,9 @@ def fetch_content(source: dict) -> str | None:
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         if source.get("css_selector"):
-            element = soup.select_one(source["css_selector"])
-            if element:
-                return element.get_text(separator=" ", strip=True)
+            elements = soup.select(source["css_selector"])
+            if elements:
+                return " ".join(el.get_text(separator=" ", strip=True) for el in elements)
         body = soup.find("body")
         return body.get_text(separator=" ", strip=True) if body else ""
     except requests.RequestException as e:
@@ -187,7 +187,6 @@ def compute_hash(text: str) -> str:
 
 
 def compute_diff_html(old_text: str, new_text: str) -> str:
-    """Genera un diff HTML entre dos textos mostrando líneas añadidas y eliminadas."""
     if not old_text:
         return "<em style='color:#888;font-size:12px;'>Sin contenido previo para comparar.</em>"
 
@@ -365,9 +364,9 @@ def run_detect_only():
             print(f"  -> *** CAMBIO DETECTADO ***\n")
             diff_html = compute_diff_html(old_content, content[:MAX_CONTENT_LEN])
             changes.append({
-                "name":     source["name"],
-                "region":   source["region"],
-                "url":      source["url"],
+                "name":      source["name"],
+                "region":    source["region"],
+                "url":       source["url"],
                 "diff_html": diff_html,
             })
         else:
