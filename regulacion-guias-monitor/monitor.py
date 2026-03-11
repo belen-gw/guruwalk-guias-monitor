@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Agente de monitorización de regulación de guías de turismo en España.
+Agente de monitorización de regulación de guías de turismo en España, Italia y Austria.
 
 Modos de uso:
   python monitor.py --detect-only   → detecta cambios, guarda pending_changes.json, NO envía email
@@ -11,7 +11,6 @@ Modos de uso:
 import argparse
 import difflib
 import hashlib
-import html as html_module
 import json
 import os
 import smtplib
@@ -32,13 +31,12 @@ GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
 EMAIL_DEST         = os.environ.get("EMAIL_DEST", "belen@guruwalk.com")
 SNAPSHOTS_FILE     = "snapshots.json"
 PENDING_FILE       = "pending_changes.json"
-MAX_CONTENT_LEN    = 5000
 
 # ──────────────────────────────────────────
 # Fuentes a monitorizar
 # ──────────────────────────────────────────
 SOURCES = [
-    # ── Nacional ──
+    # ── Nacional (España) ──
     {
         "name": "BOE – Legislación 'guía turístico'",
         "region": "Nacional",
@@ -52,12 +50,12 @@ SOURCES = [
         "css_selector": "ul.resultado-busqueda",
     },
     {
-        "name": "Ministerio de Turismo – Portal oficial",
+        "name": "Ministerio de Turismo – Regulación",
         "region": "Nacional",
-        "url": "https://turismo.gob.es/",
-        "css_selector": "main",
+        "url": "https://www.mtes.gob.es/es/turismo/politica-turistica-estatal/regulacion/",
+        "css_selector": "div.rte",
     },
-    # ── Comunidades Autónomas ──
+    # ── Comunidades Autónomas (España) ──
     {
         "name": "Andalucía – Guías turísticos",
         "region": "Andalucía",
@@ -67,13 +65,13 @@ SOURCES = [
     {
         "name": "Comunidad de Madrid – Guías turísticos",
         "region": "Madrid",
-        "url": "https://sede.comunidad.madrid/autorizaciones-licencias-permisos-carnes/pruebas-guia-oficial-turismo",
-        "css_selector": "main",
+        "url": "https://www.comunidad.madrid/servicios/turismo/guias-turisticos",
+        "css_selector": "div.layout-container",
     },
     {
         "name": "Cataluña – Guies de turisme",
         "region": "Cataluña",
-        "url": "https://empresa.gencat.cat/ca/treb_ambits_actuacio/turisme/professionals_turisme/emo_empreses_establiments_turistics/emo_guies_turisme/",
+        "url": "https://empresa.gencat.cat/ca/treb_empreses/tur/formacioturistica/guiesdeturisme/",
         "css_selector": "div#contingut",
     },
     {
@@ -85,19 +83,19 @@ SOURCES = [
     {
         "name": "Canarias – Guías turísticos",
         "region": "Canarias",
-        "url": "https://www.gobiernodecanarias.org/turismo/dir_gral_ordenacion_promocion/guias_de_turismo/index.html",
+        "url": "https://www.gobiernodecanarias.org/turismo/temas/empresas_y_actividades/guias_de_turismo/",
         "css_selector": "div#content",
     },
     {
-        "name": "Galicia – Normativa guías de turismo",
+        "name": "Galicia – Guías de turismo",
         "region": "Galicia",
-        "url": "https://www.turismo.gal/canle-institucional/normativa/decretos?langId=es_ES",
-        "css_selector": "main",
+        "url": "https://www.xunta.gal/dog/Publicados/2011/20110202/AnuncioC3B0-250111-3095_gl.html",
+        "css_selector": "div#content",
     },
     {
         "name": "Illes Balears – Guies de turisme",
         "region": "Baleares",
-        "url": "https://www.caib.es/sites/portalturisme/ca/guies_turastics/",
+        "url": "https://www.caib.es/sites/turisme/es/guies_de_turisme/",
         "css_selector": "div.portlet-body",
     },
     {
@@ -107,39 +105,39 @@ SOURCES = [
         "css_selector": "div.contenidos",
     },
     {
-        "name": "Aragón – Guías de turismo",
+        "name": "Aragón – Autorización guía de turismo",
         "region": "Aragón",
-        "url": "https://www.aragon.es/tramites/cultura-turismo-deportes-ocio/turismo-hosteleria/guias-turismo",
-        "css_selector": "main",
+        "url": "https://www.aragon.es/tramitador/-/tramite/autorizacion-ejercer-actividad-guia-turismo",
+        "css_selector": "div.tramite-content",
     },
     {
         "name": "Castilla y León – Guías de turismo",
         "region": "Castilla y León",
-        "url": "https://www.tramitacastillayleon.jcyl.es/web/jcyl/AdministracionElectronica/es/Plantilla100Detalle/1251181050732/Tramite/1284546227141/Tramite",
+        "url": "https://tramitacastillayleon.jcyl.es/web/jcyl/AdministracionElectronica/es/Formularios/1284227483898/1/1/es/",
         "css_selector": "div.contenido",
     },
     {
-        "name": "Castilla-La Mancha – Habilitación guía de turismo",
+        "name": "Castilla-La Mancha – Guías de turismo",
         "region": "Castilla-La Mancha",
-        "url": "https://www.jccm.es/sede/tramite/M7N",
-        "css_selector": "main",
+        "url": "https://industria.castillalamancha.es/turismo/guias-turismo",
+        "css_selector": "div.content",
     },
     {
         "name": "Región de Murcia – Guías turísticos",
         "region": "Murcia",
-        "url": "https://sede.carm.es/web/pagina?IDCONTENIDO=853&IDTIPO=240&RASTRO=c$m40288",
+        "url": "https://www.carm.es/web/pagina?IDCONTENIDO=23494&IDTIPO=100&RASTRO=c108$m",
         "css_selector": ".fichaSeccion:not(#seccion-solicitudes)",
     },
     {
-        "name": "Navarra – Legislación guías de turismo",
+        "name": "Navarra – Guías de turismo",
         "region": "Navarra",
-        "url": "https://www.lexnavarra.navarra.es/buscador.asp?textolibre=guia+turismo&idrango=0",
-        "css_selector": "main",
+        "url": "https://www.navarra.es/es/tramites/on/detalle-tramite/?id=21978",
+        "css_selector": "div.tramite",
     },
     {
         "name": "Extremadura – Guías de turismo",
         "region": "Extremadura",
-        "url": "https://www.juntaex.es/w/2936",
+        "url": "https://www.juntaex.es/w/procedimiento/autorizacion-profesional-de-guia-de-turismo",
         "css_selector": "#tramite_finalidad, #tramite_requisitos, #tramite_documentacion, #tramite_normativa, #tramite_resolucion, #tramite_gestor",
     },
     {
@@ -147,6 +145,74 @@ SOURCES = [
         "region": "Asturias",
         "url": "https://sede.asturias.es/tramite/guia-de-turismo",
         "css_selector": "div.tramite-body",
+    },
+    # ── Italia ──
+    {
+        "name": "Ministero del Turismo – Guide turistiche (normativa)",
+        "region": "Italia",
+        "url": "https://www.ministeroturismo.gov.it/guide-turistiche/",
+        "css_selector": "div.entry-content",
+    },
+    {
+        "name": "Ministero del Turismo – Riforma guide turistiche",
+        "region": "Italia",
+        "url": "https://www.ministeroturismo.gov.it/riforma-delle-guide-turistiche/",
+        "css_selector": "div.entry-content",
+    },
+    {
+        "name": "Lazio – Guide turistiche",
+        "region": "Lazio",
+        "url": "https://www.regione.lazio.it/cittadini/turismo-cultura-sport/turismo/guide-turistiche",
+        "css_selector": "div.field-items",
+    },
+    {
+        "name": "Toscana – Guide turistiche",
+        "region": "Toscana",
+        "url": "https://www.regione.toscana.it/-/guide-turistiche",
+        "css_selector": "div.portlet-body",
+    },
+    {
+        "name": "Veneto – Guide turistiche",
+        "region": "Veneto",
+        "url": "https://www.regione.veneto.it/web/turismo/guide-turistiche",
+        "css_selector": "div#mainContent",
+    },
+    {
+        "name": "Lombardia – Guide turistiche",
+        "region": "Lombardia",
+        "url": "https://www.regione.lombardia.it/wps/portal/istituzionale/HP/temi-e-focus/turismo/guide-turistiche",
+        "css_selector": "div.it-page-sections-container",
+    },
+    {
+        "name": "Campania – Guide turistiche",
+        "region": "Campania",
+        "url": "https://www.regione.campania.it/regione/it/tematiche/scheda-tema?id=77",
+        "css_selector": "div.container",
+    },
+    # ── Austria ──
+    {
+        "name": "WKO Federal – Fremdenführer (Bundesebene)",
+        "region": "Austria",
+        "url": "https://www.wko.at/branchen/tourismus-freizeitwirtschaft/reisebuerossowie-reiseveranstalter/fremdenverkehr",
+        "css_selector": "div.content-main",
+    },
+    {
+        "name": "WKO Wien – Fremdenführer Wien",
+        "region": "Wien",
+        "url": "https://www.wkw.at/de/branchen/tourismus-freizeitwirtschaft/reisebueros-reiseveranstalter/fremdenverkehr/",
+        "css_selector": "div.content",
+    },
+    {
+        "name": "WKO Salzburg – Fremdenführer Salzburg",
+        "region": "Salzburg",
+        "url": "https://www.wks.at/branchenvertretungen/sparte-tourismus-und-freizeitwirtschaft/fachgruppe-reisebueros-reiseveranstalter/fremdenverkehr.html",
+        "css_selector": "div.content",
+    },
+    {
+        "name": "WKO Tirol – Fremdenführer Tirol",
+        "region": "Tirol",
+        "url": "https://www.wktirol.at/branchen/tourismus-freizeitwirtschaft/reisebuerossowie-reiseveranstalter/fremdenverkehr",
+        "css_selector": "div.content-main",
     },
     # ── Artículo propio GuruWalk ──
     {
@@ -172,6 +238,7 @@ def fetch_content(source: dict) -> str | None:
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         if source.get("css_selector"):
+            # select() soporta selectores múltiples separados por comas
             elements = soup.select(source["css_selector"])
             if elements:
                 return " ".join(el.get_text(separator=" ", strip=True) for el in elements)
@@ -187,42 +254,33 @@ def compute_hash(text: str) -> str:
 
 
 def compute_diff_html(old_text: str, new_text: str) -> str:
-    if not old_text:
-        return "<em style='color:#888;font-size:12px;'>Sin contenido previo para comparar.</em>"
+    """Genera un bloque HTML con las diferencias entre dos textos."""
+    old_words = old_text.split()
+    new_words = new_text.split()
+    diff = list(difflib.ndiff(old_words, new_words))
 
-    old_lines = [l.strip() for l in old_text.splitlines() if l.strip()]
-    new_lines = [l.strip() for l in new_text.splitlines() if l.strip()]
+    removed = [t[2:] for t in diff if t.startswith("- ")]
+    added   = [t[2:] for t in diff if t.startswith("+ ")]
 
-    diff = list(difflib.ndiff(old_lines, new_lines))
+    lines = []
+    if removed:
+        lines.append(
+            '<div style="background:#fff0f0;padding:8px;margin:4px 0;border-left:3px solid #c0392b;">'
+            '<span style="color:#c0392b;font-weight:bold;">➖ Eliminado:</span> '
+            + " ".join(f'<span style="background:#ffd7d7">{w}</span>' for w in removed[:50])
+            + ("..." if len(removed) > 50 else "")
+            + "</div>"
+        )
+    if added:
+        lines.append(
+            '<div style="background:#f0fff0;padding:8px;margin:4px 0;border-left:3px solid #27ae60;">'
+            '<span style="color:#27ae60;font-weight:bold;">➕ Añadido:</span> '
+            + " ".join(f'<span style="background:#d4f7d4">{w}</span>' for w in added[:50])
+            + ("..." if len(added) > 50 else "")
+            + "</div>"
+        )
 
-    result = []
-    count = 0
-    for line in diff:
-        if line.startswith("- "):
-            result.append(
-                f'<div style="background:#ffeaea;padding:5px 8px;margin:2px 0;'
-                f'border-left:3px solid #c0392b;font-family:monospace;font-size:12px;">'
-                f'➖ {html_module.escape(line[2:])}</div>'
-            )
-            count += 1
-        elif line.startswith("+ "):
-            result.append(
-                f'<div style="background:#eaffea;padding:5px 8px;margin:2px 0;'
-                f'border-left:3px solid #27ae60;font-family:monospace;font-size:12px;">'
-                f'➕ {html_module.escape(line[2:])}</div>'
-            )
-            count += 1
-        if count >= 20:
-            result.append(
-                '<div style="color:#888;font-size:11px;margin-top:6px;font-style:italic;">'
-                '... (se muestran los primeros 20 cambios)</div>'
-            )
-            break
-
-    if not result:
-        return "<em style='color:#888;font-size:12px;'>Cambio detectado en metadatos (sin diferencias de texto visibles).</em>"
-
-    return "".join(result)
+    return "\n".join(lines) if lines else "<p style='color:#888'>Sin detalles de diff disponibles.</p>"
 
 
 def load_json(path: str) -> dict | list:
@@ -248,29 +306,28 @@ def build_alert_html(changes: list) -> str:
         diff_section = ""
         if ch.get("diff_html"):
             diff_section = f"""
-        <tr>
-          <td colspan="3" style="padding:12px;background:#fafafa;border-bottom:2px solid #eee;">
-            <div style="font-size:12px;color:#555;font-weight:bold;margin-bottom:6px;">
-              Cambios detectados:
-            </div>
-            {ch['diff_html']}
-          </td>
-        </tr>"""
-
+          <tr>
+            <td colspan="3" style="padding:8px 10px 16px 10px;">
+              <div style="font-size:12px;color:#555;margin-bottom:4px;">
+                <strong>Cambios detectados:</strong>
+              </div>
+              {ch['diff_html']}
+            </td>
+          </tr>"""
         rows += f"""
         <tr>
-          <td style="padding:10px;border-bottom:1px solid #eee;font-weight:bold;color:#c0392b;">
+          <td style="padding:10px; border-bottom:1px solid #eee; font-weight:bold; color:#c0392b;">
             {ch['region']}
           </td>
-          <td style="padding:10px;border-bottom:1px solid #eee;">{ch['name']}</td>
-          <td style="padding:10px;border-bottom:1px solid #eee;">
+          <td style="padding:10px; border-bottom:1px solid #eee;">{ch['name']}</td>
+          <td style="padding:10px; border-bottom:1px solid #eee;">
             <a href="{ch['url']}" style="color:#2980b9;">Ver fuente</a>
           </td>
         </tr>
         {diff_section}"""
 
     return f"""
-    <html><body style="font-family:Arial,sans-serif;color:#333;max-width:750px;margin:auto;">
+    <html><body style="font-family:Arial,sans-serif;color:#333;max-width:700px;margin:auto;">
       <div style="background:#c0392b;color:white;padding:20px;border-radius:6px 6px 0 0;">
         <h2 style="margin:0;">Alerta: Cambios en regulación de guías turísticos</h2>
         <p style="margin:4px 0 0 0;opacity:.85;">{date_str} · Confirmado por Belén</p>
@@ -310,7 +367,8 @@ def build_ok_html() -> str:
         <p style="margin:4px 0 0 0;opacity:.85;">{datetime.today().strftime('%d/%m/%Y')}</p>
       </div>
       <p style="margin-top:16px;">La revisión de las <strong>{len(SOURCES)} fuentes</strong>
-      no ha detectado ningún cambio en la regulación de guías de turismo en España.</p>
+      no ha detectado ningún cambio en la regulación de guías de turismo
+      en España, Italia y Austria.</p>
       <p style="color:#aaa;font-size:11px;">
         Generado automáticamente por el agente de monitorización de GuruWalk.
       </p>
@@ -334,6 +392,10 @@ def send_email(subject: str, html_body: str):
 # ──────────────────────────────────────────
 
 def run_detect_only():
+    """
+    Detecta cambios y guarda el resultado en pending_changes.json.
+    NO envía ningún email. El workflow pausará aquí para que apruebes.
+    """
     print(f"\n{'='*60}")
     print(f"  MODO: Solo detección (sin envío)")
     print(f"  Fecha: {datetime.today().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -354,21 +416,19 @@ def run_detect_only():
                 new_snapshots[source["url"]] = snapshots[source["url"]]
             continue
 
-        current_hash  = compute_hash(content)
-        previous_hash = snapshots.get(source["url"], {}).get("hash")
-        old_content   = snapshots.get(source["url"], {}).get("content", "")
+        current_hash     = compute_hash(content)
+        prev_data        = snapshots.get(source["url"], {})
+        previous_hash    = prev_data.get("hash")
+        previous_content = prev_data.get("content", "")
 
         if previous_hash is None:
             print("  -> Primera vez registrada.\n")
         elif current_hash != previous_hash:
             print(f"  -> *** CAMBIO DETECTADO ***\n")
-            diff_html = compute_diff_html(old_content, content[:MAX_CONTENT_LEN])
-            changes.append({
-                "name":      source["name"],
-                "region":    source["region"],
-                "url":       source["url"],
-                "diff_html": diff_html,
-            })
+            diff_html    = compute_diff_html(previous_content, content[:5000])
+            change_entry = dict(source)
+            change_entry["diff_html"] = diff_html
+            changes.append(change_entry)
         else:
             print("  -> Sin cambios.\n")
 
@@ -377,12 +437,13 @@ def run_detect_only():
             "name":         source["name"],
             "region":       source["region"],
             "last_checked": datetime.today().isoformat(),
-            "content":      content[:MAX_CONTENT_LEN],
+            "content":      content[:5000],
         }
         time.sleep(1)
 
     save_json(SNAPSHOTS_FILE, new_snapshots)
 
+    # ── Resumen legible en los logs de GitHub Actions ──
     print("\n" + "="*60)
     print("  RESUMEN DE LA DETECCIÓN")
     print("="*60)
@@ -400,16 +461,16 @@ def run_detect_only():
         print("  Si apruebas este workflow, se enviará el email semanal de 'Todo OK'.")
     print("="*60 + "\n")
 
+    # Guarda los cambios pendientes para el paso de envío
     save_json(PENDING_FILE, {
         "date":         datetime.today().isoformat(),
         "is_first_run": is_first_run,
         "changes":      changes,
     })
-    print(f"  -> pending_changes.json guardado correctamente.")
 
     if changes:
         print("::notice title=Cambios detectados::"
-              f"{len(changes)} fuente(s) han cambiado.")
+              f"{len(changes)} fuente(s) han cambiado. Revisa el resumen de arriba.")
     elif is_first_run:
         print("::notice title=Primera ejecucion::Snapshots iniciales guardados.")
     else:
@@ -417,6 +478,10 @@ def run_detect_only():
 
 
 def run_send_pending():
+    """
+    Lee pending_changes.json (generado por --detect-only) y envía el email.
+    Solo se ejecuta si Belén ha aprobado en GitHub Actions.
+    """
     print(f"\n{'='*60}")
     print(f"  MODO: Envío de email (aprobado por Belén)")
     print(f"  Fecha: {datetime.today().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -441,11 +506,11 @@ def run_send_pending():
     date_str = datetime.today().strftime("%d/%m/%Y")
 
     if changes:
-        subject = f"[GuruWalk] Cambios regulacion guias turisticos - {date_str}"
+        subject = f"[GuruWalk] ⚠️ Cambios regulacion guias turisticos – {date_str}"
         html    = build_alert_html(changes)
         print(f"Enviando email de alerta con {len(changes)} cambio(s)...")
     else:
-        subject = f"[GuruWalk] Sin cambios en regulacion guias - {date_str}"
+        subject = f"[GuruWalk] ✅ Sin cambios en regulacion guias – {date_str}"
         html    = build_ok_html()
         print("Enviando email de confirmación semanal 'Todo OK'...")
 
@@ -453,6 +518,7 @@ def run_send_pending():
 
 
 def run_full():
+    """Modo completo sin confirmación (útil para pruebas locales)."""
     print(f"\n{'='*60}")
     print(f"  MODO: Completo (sin confirmación)")
     print(f"  Fecha: {datetime.today().strftime('%Y-%m-%d %H:%M:%S')}")
