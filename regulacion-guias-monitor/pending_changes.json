@@ -1,13 +1,27 @@
 {
-  "date": "2026-10-26T13:45:32.892440",
+  "date": "2026-11-02T16:42:11.555833",
   "is_first_run": false,
   "changes": [
+    {
+      "name": "Comunitat Valenciana – Guías de turismo",
+      "region": "Valencia",
+      "url": "https://www.gva.es/es/inicio/procedimientos?id_proc=20261",
+      "css_selector": "div#procedimiento",
+      "diff_html": "<div style=\"background:#f0fff0;padding:8px;margin:4px 0;border-left:3px solid #27ae60;\"><span style=\"color:#27ae60;font-weight:bold;\">➕ Añadido:</span> <span style=\"background:#d4f7d4\">Oficinas</span> <span style=\"background:#d4f7d4\">postemergencia</span> <span style=\"background:#d4f7d4\">DANA</span> <span style=\"background:#d4f7d4\">Adam</span></div>"
+    },
     {
       "name": "Ministero del Turismo – Riforma guide turistiche",
       "region": "Italia",
       "url": "https://www.ministeroturismo.gov.it/riforma-delle-guide-turistiche/",
       "css_selector": "div.entry-content",
-      "diff_html": "<div style=\"background:#fff0f0;padding:8px;margin:4px 0;border-left:3px solid #c0392b;\"><span style=\"color:#c0392b;font-weight:bold;\">➖ Eliminado:</span> <span style=\"background:#ffd7d7\">c9f0aa77-e7ii-41f6-82d2-23b22b330fb8</span></div>\n<div style=\"background:#f0fff0;padding:8px;margin:4px 0;border-left:3px solid #27ae60;\"><span style=\"color:#27ae60;font-weight:bold;\">➕ Añadido:</span> <span style=\"background:#d4f7d4\">7b1630e1-e7ii-4230-bc61-232ceb4a6bb9</span></div>"
+      "diff_html": "<div style=\"background:#fff0f0;padding:8px;margin:4px 0;border-left:3px solid #c0392b;\"><span style=\"color:#c0392b;font-weight:bold;\">➖ Eliminado:</span> <span style=\"background:#ffd7d7\">7b1630e1-e7ii-4230-bc61-232ceb4a6bb9</span></div>\n<div style=\"background:#f0fff0;padding:8px;margin:4px 0;border-left:3px solid #27ae60;\"><span style=\"color:#27ae60;font-weight:bold;\">➕ Añadido:</span> <span style=\"background:#d4f7d4\">a666b4e4-e7ii-4cac-a511-9407b56c2daf</span></div>"
+    },
+    {
+      "name": "Lombardia – Guide turistiche",
+      "region": "Lombardia",
+      "url": "https://www.regione.lombardia.it/wps/portal/istituzionale/HP/temi-e-focus/turismo/guide-turistiche",
+      "css_selector": "div.it-page-sections-container",
+      "diff_html": "<p style='color:#888'>Sin detalles de diff disponibles.</p>"
     }
   ]
 }
